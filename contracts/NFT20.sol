@@ -8,20 +8,25 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract NFT20 is ERC721, ERC721Enumerable, Pausable, AccessControl, ERC721Burnable {
+/**
+ * @title Fungible Non-Fungible Token
+ * @author Beau Williams (@beauwilliams)
+ * @dev Smart contract for NFTCOIN a.k.a NFT20
+ */
+contract NFTCOIN is ERC721, ERC721Enumerable, Pausable, AccessControl, ERC721Burnable {
     using Counters for Counters.Counter;
 
-    uint256 constant public TOTAL_SUPPLY = 1000000000;
-    uint256 constant public TOTAL_CONSUMERS = 10000000;
-    mapping(uint256 => uint256) public consumerBalance;
+    uint256 constant public TOTAL_SUPPLY = 100000000000000000000000000;
+    uint256 constant public TOTAL_WALLETS = 1000000000000;
+    mapping(uint256 => uint256) public walletBalance;
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
     Counters.Counter private _tokenIdCounter;
 
     constructor() ERC721("NFT20", "N20") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
-        _grantRole(MINTER_ROLE, msg.sender);
+        _grantRole(ISSUER_ROLE, msg.sender);
     }
 
     error NotConsumerOwner();
@@ -30,11 +35,11 @@ contract NFT20 is ERC721, ERC721Enumerable, Pausable, AccessControl, ERC721Burna
     error AccountNotExist();
 
     function getFidelity() public pure returns (uint256 fidelity) {
-        return TOTAL_SUPPLY/TOTAL_CONSUMERS;
+        return TOTAL_SUPPLY/TOTAL_WALLETS;
     }
 
     function getConsumerBalance(uint256 tokenId) public view returns (uint256 balance) {
-        return consumerBalance[tokenId];
+        return walletBalance[tokenId];
     }
 
     function sendBalance(uint256 consumerFrom, uint256 consumerTo, uint256 amount) public returns (bool success) {
@@ -44,15 +49,15 @@ contract NFT20 is ERC721, ERC721Enumerable, Pausable, AccessControl, ERC721Burna
         revert AccountNotExist();
     if (ownerOf(consumerFrom) != msg.sender)
         revert NotConsumerOwner();
-    if (amount > consumerBalance[consumerFrom])
+    if (amount > walletBalance[consumerFrom])
         revert InsufficientFunds();
-    consumerBalance[consumerFrom]-= amount;
-    consumerBalance[consumerTo] += amount;
+    walletBalance[consumerFrom]-= amount;
+    walletBalance[consumerTo] += amount;
     return true;
     }
 
     function _baseURI() internal pure override returns (string memory) {
-        return "https://test.n20.dev/";
+        return "https://nft.coin/";
     }
 
     function pause() public onlyRole(PAUSER_ROLE) {
@@ -63,10 +68,10 @@ contract NFT20 is ERC721, ERC721Enumerable, Pausable, AccessControl, ERC721Burna
         _unpause();
     }
 
-    function mintConsumer(address to) public onlyRole(MINTER_ROLE) {
+    function mintWallet(address to) public onlyRole(ISSUER_ROLE) {
         uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
-        consumerBalance[tokenId] = getFidelity();
+        walletBalance[tokenId] = getFidelity();
         _safeMint(to, tokenId);
     }
 
