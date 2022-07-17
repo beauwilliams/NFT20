@@ -11,9 +11,9 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 /**
  * @title Fungible Non-Fungible Token
  * @author Beau Williams (@beauwilliams)
- * @dev Smart contract for NFTCOIN a.k.a NFT20
+ * @dev Smart contract for NFT20 a.k.a NFTCOIN
  */
-contract NFTCOIN is ERC721, ERC721Enumerable, Pausable, AccessControl, ERC721Burnable {
+contract NFT20 is ERC721, ERC721Enumerable, Pausable, AccessControl, ERC721Burnable {
     using Counters for Counters.Counter;
 
     uint256 constant public TOTAL_SUPPLY = 100000000000000000000000000;
@@ -23,13 +23,13 @@ contract NFTCOIN is ERC721, ERC721Enumerable, Pausable, AccessControl, ERC721Bur
     bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
     Counters.Counter private _tokenIdCounter;
 
-    constructor() ERC721("NFT20", "N20") {
+    constructor() ERC721("NFT20", "NFT20") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(ISSUER_ROLE, msg.sender);
     }
 
-    error NotConsumerOwner();
+    error NotWalletOwner();
     error InsufficientFunds();
     error SenderIsReceiver();
     error AccountNotExist();
@@ -38,21 +38,23 @@ contract NFTCOIN is ERC721, ERC721Enumerable, Pausable, AccessControl, ERC721Bur
         return TOTAL_SUPPLY/TOTAL_WALLETS;
     }
 
-    function getConsumerBalance(uint256 tokenId) public view returns (uint256 balance) {
+    function getWalletBalance(uint256 tokenId) public view returns (uint256 balance) {
         return walletBalance[tokenId];
     }
 
-    function sendBalance(uint256 consumerFrom, uint256 consumerTo, uint256 amount) public returns (bool success) {
-    if (consumerFrom == consumerTo)
+    function transferBalance(uint256 walletFrom, uint256 walletTo, uint256 amount) public returns (bool success) {
+    if (walletFrom == walletTo)
         revert SenderIsReceiver();
-    if (consumerFrom > _tokenIdCounter.current())
+    if (walletFrom > _tokenIdCounter.current() || walletFrom < 0)
         revert AccountNotExist();
-    if (ownerOf(consumerFrom) != msg.sender)
-        revert NotConsumerOwner();
-    if (amount > walletBalance[consumerFrom])
+    if (walletTo > _tokenIdCounter.current() || walletTo < 0)
+        revert AccountNotExist();
+    if (ownerOf(walletFrom) != msg.sender)
+        revert NotWalletOwner();
+    if (amount > walletBalance[walletFrom])
         revert InsufficientFunds();
-    walletBalance[consumerFrom]-= amount;
-    walletBalance[consumerTo] += amount;
+    walletBalance[walletFrom]-= amount;
+    walletBalance[walletTo] += amount;
     return true;
     }
 
